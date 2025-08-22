@@ -13,8 +13,6 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 - **Cross-Platform**: Native iOS and macOS app with Mac Catalyst support
 - **Native Experience**: Built with SwiftUI for optimal performance and integration across all Apple platforms
 
-## Screenshots
-
 <div align="center">
   <img src="https://i.imgur.com/IFTyEms.png" width="30%" />
   <img src="https://i.imgur.com/99CrRth.png" width="30%" />
