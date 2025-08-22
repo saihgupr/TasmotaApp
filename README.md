@@ -1,4 +1,4 @@
-# TasmotaApp <img src="https://i.imgur.com/J8fkOBi.png" width="25%" align="right" />
+# TasmotaApp <img src="https://i.imgur.com/J8fkOBi.png" width="10%" align="right" />
 
 A native iOS and macOS app for controlling Tasmota-powered smart devices on your local network. Built with SwiftUI for a modern, responsive interface that adapts to different device orientations and screen sizes across iPhone, iPad, and Mac.
 
