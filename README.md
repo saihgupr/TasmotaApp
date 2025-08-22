@@ -126,37 +126,6 @@ To use this app with your devices, ensure they're running Tasmota firmware with 
 
 Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
 
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and test thoroughly
-4. Commit your changes: `git commit -am 'Add some feature'`
-5. Push to the branch: `git push origin feature-name`
-6. Submit a pull request
-
-## Roadmap
-
-- [ ] Device discovery via network scanning
-- [ ] Support for dimmer controls
-- [ ] Timer and scheduling functionality
-- [ ] Widget support for iOS home screen
-- [ ] Scene/automation management
-- [ ] Device status history
-- [ ] Dark mode support
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/yourusername/TasmotaApp/issues) page
-2. Create a new issue with detailed information about your problem
-3. Include device model, iOS version, and steps to reproduce
-
 ## Acknowledgments
 
 - [Tasmota](https://tasmota.github.io/docs/) - The amazing open-source firmware that makes this possible
