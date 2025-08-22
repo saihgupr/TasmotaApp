@@ -65,13 +65,15 @@ struct AddEditDeviceView: View {
             group = selectedGroup
         }
         
-        var newDevice = device ?? Device(name: name, ipAddress: ipAddress)
-        newDevice.name = name
-        newDevice.ipAddress = ipAddress
-        
         if let device = device {
-            deviceManager.editDevice(device, to: newDevice, in: group)
+            // Preserve the original device's ID when editing
+            var updatedDevice = device
+            updatedDevice.name = name
+            updatedDevice.ipAddress = ipAddress
+            deviceManager.editDevice(device, to: updatedDevice, in: group)
         } else {
+            // Create new device for adding
+            let newDevice = Device(name: name, ipAddress: ipAddress)
             deviceManager.addDevice(newDevice, to: group)
         }
     }
