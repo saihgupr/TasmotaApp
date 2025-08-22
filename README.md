@@ -35,7 +35,7 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 
 ### Option 1: Download from Releases
 
-Download the latest pre-built app from the [Releases](https://github.com/saihgupr/TasmotaApp/releases) page. Simply download the `.app` file and move it to your Applications folder.
+Download the latest pre-built app from the [Releases](https://github.com/saihgupr/TasmotaApp/releases) page. Simply download the `.app` file and move it to your Applications folder, or sideload the `.ipa` file to your iOS device.
 
 ### Option 2: Build from Source
 
