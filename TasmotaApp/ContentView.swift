@@ -1,24 +1,316 @@
-//
-//  ContentView.swift
-//  TasmotaApp
-//
-//  Created by Chris LaPointe on 8/20/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+    @StateObject private var deviceManager = DeviceManager()
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isAddingDevice = false
+    @State private var isImportingJSON = false
+    
+    init() {
+        // Complete navigation bar border removal for macOS
+        #if targetEnvironment(macCatalyst)
+        // Create completely clean appearance
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor.systemBackground
+        appearance.shadowColor = UIColor.clear
+        appearance.shadowImage = UIImage()
+        appearance.backgroundImage = UIImage()
+        appearance.titleTextAttributes = [:]
+        appearance.largeTitleTextAttributes = [:]
+        
+        // Apply to all navigation bar states
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        
+        // Only set compactScrollEdgeAppearance if available
+        if #available(macCatalyst 15.0, *) {
+            UINavigationBar.appearance().compactScrollEdgeAppearance = appearance
         }
-        .padding()
+        
+        // Remove separators and borders safely
+        UINavigationBar.appearance().isTranslucent = false
+        UINavigationBar.appearance().clipsToBounds = false
+        UINavigationBar.appearance().layer.shadowOpacity = 0
+        #endif
+    }
+    
+    var body: some View {
+        NavigationView {
+            Group {
+                if deviceManager.deviceGroups.isEmpty {
+                    EmptyStateView(deviceManager: deviceManager, isImportingJSON: $isImportingJSON, isAddingDevice: $isAddingDevice)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 24) {
+                            ForEach(deviceManager.deviceGroups) { group in
+                                DeviceGroupView(group: group, deviceManager: deviceManager)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                    }
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Tasmota")
+            .navigationBarTitleDisplayMode(.large)
+            .overlay(
+                // Cover any remaining separator line
+                Rectangle()
+                    .fill(Color(.systemBackground))
+                    .frame(height: 1)
+                    .offset(y: -1)
+                , alignment: .top
+            )
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !deviceManager.deviceGroups.isEmpty {
+                        Button(action: {
+                            isImportingJSON = true
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                        }
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        isAddingDevice = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $isAddingDevice) {
+                AddEditDeviceView(deviceManager: deviceManager)
+                    .preferredColorScheme(.light)
+            }
+            .sheet(isPresented: $isImportingJSON) {
+                ImportJSONView(deviceManager: deviceManager)
+                    .preferredColorScheme(.light)
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
-#Preview {
-    ContentView()
+struct DeviceGroupView: View {
+    let group: DeviceGroup
+    @ObservedObject var deviceManager: DeviceManager
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    
+    private var formattedGroupName: String {
+        return group.name
+            .replacingOccurrences(of: "_", with: " ")
+            .capitalized
+    }
+    
+    private var columnCount: Int {
+        // Use single column in portrait mode on iPhone (compact width + regular height)
+        // Use two columns in landscape or on iPad
+        if horizontalSizeClass == .compact && verticalSizeClass == .regular {
+            return 1
+        } else {
+            return 2
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(formattedGroupName)
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .padding(.horizontal, 20)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount), spacing: 16) {
+                ForEach(group.devices) { device in
+                    DeviceCard(device: device, groupName: group.name, deviceManager: deviceManager)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+struct DeviceCard: View {
+    let device: Device
+    let groupName: String
+    @ObservedObject var deviceManager: DeviceManager
+    let api = TasmotaAPI()
+    @State private var isToggled = false
+    @State private var isLoading = false
+    @State private var isEditingDevice = false
+    @State private var hasLoadedInitialState = false
+    @State private var isSettingInitialState = false
+    
+    private var formattedDeviceName: String {
+        return device.name
+            .replacingOccurrences(of: "_", with: " ")
+            .capitalized
+    }
+    
+    var body: some View {
+        HStack {
+            Text(formattedDeviceName)
+                .font(.headline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+            
+            Toggle("", isOn: $isToggled)
+                .onChange(of: isToggled) { value in
+                    print("🔍 onChange triggered for \(device.name): value=\(value), isSettingInitialState=\(isSettingInitialState)")
+                    if hasLoadedInitialState && !isSettingInitialState {
+                        print("🚀 Calling toggleDevice for \(device.name)")
+                        toggleDevice()
+                    } else {
+                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading")
+                    }
+                }
+                .disabled(isLoading)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .onAppear(perform: getInitialState)
+        .contextMenu {
+            Button(action: {
+                isEditingDevice = true
+            }) {
+                Text("Edit")
+                Image(systemName: "pencil")
+            }
+            
+            Button(action: {
+                deviceManager.deleteDevice(device, from: groupName)
+            }) {
+                Text("Delete")
+                Image(systemName: "trash")
+            }
+            .foregroundColor(.red)
+        }
+        .sheet(isPresented: $isEditingDevice) {
+            AddEditDeviceView(deviceManager: deviceManager, device: device, groupName: groupName)
+                .preferredColorScheme(.light)
+        }
+    }
+    
+
+    private func getInitialState() {
+        print("🔄 Getting initial state for \(device.name)")
+        isLoading = true
+        isSettingInitialState = true
+        api.getPowerState(ipAddress: device.ipAddress) { state in
+            DispatchQueue.main.async {
+                print("📡 Initial state for \(device.name): \(state ?? "nil")")
+                isLoading = false
+                if let state = state {
+                    // Set the toggle state to match the device's actual state
+                    isToggled = (state == "ON")
+                    print("✅ Set toggle to \(isToggled) for \(device.name)")
+                    hasLoadedInitialState = true // Only set this when we successfully get state
+                    
+                    // Use a small delay to ensure onChange doesn't trigger before we reset the flag
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isSettingInitialState = false
+                        print("🏁 Initial state loading completed for \(device.name)")
+                    }
+                } else {
+                    print("❌ Could not get state for \(device.name) - keeping toggle disabled")
+                    isSettingInitialState = false
+                    // Don't set hasLoadedInitialState = true here, so toggle remains disabled
+                }
+            }
+        }
+    }
+    
+    private func toggleDevice() {
+        isLoading = true
+        api.toggleDevice(ipAddress: device.ipAddress) { success in
+            DispatchQueue.main.async {
+                isLoading = false
+                if !success {
+                    // Revert the toggle state if the API call fails
+                    isToggled.toggle()
+                }
+            }
+        }
+    }
+}
+
+struct EmptyStateView: View {
+    @ObservedObject var deviceManager: DeviceManager
+    @Binding var isImportingJSON: Bool
+    @Binding var isAddingDevice: Bool
+    
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                Image(systemName: "lightbulb")
+                    .font(.system(size: 64))
+                    .foregroundColor(.secondary)
+                
+                Text("No Devices Added")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text("Get started by importing your devices from JSON or adding them manually")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            VStack(spacing: 16) {
+                Button(action: {
+                    isImportingJSON = true
+                }) {
+                    HStack {
+                        Image(systemName: "square.and.arrow.down")
+                        Text("Import from JSON")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                
+                Button(action: {
+                    isAddingDevice = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus")
+                        Text("Add Device Manually")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray5))
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 40)
+            
+            Spacer()
+        }
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
