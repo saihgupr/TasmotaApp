@@ -33,11 +33,15 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 
 ## Installation
 
-### Option 1: Build from Source
+### Option 1: Download from Releases
+
+Download the latest pre-built app from the [Releases](https://github.com/saihgupr/TasmotaApp/releases) page. Simply download the `.app` file and move it to your Applications folder.
+
+### Option 2: Build from Source
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/TasmotaApp.git
+   git clone https://github.com/saihgupr/TasmotaApp.git
    cd TasmotaApp
    ```
 
@@ -47,7 +51,7 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 
 4. Build and run the project (⌘+R)
 
-### Option 2: Use Build Script
+### Option 3: Use Build Script
 
 ```bash
 ./build.sh
