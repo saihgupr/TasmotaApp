@@ -1,11 +1,16 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let refreshDeviceStates = Notification.Name("refreshDeviceStates")
+}
+
 struct ContentView: View {
     @StateObject private var deviceManager = DeviceManager()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @State private var isAddingDevice = false
     @State private var isImportingJSON = false
+    @State private var refreshTimer: Timer?
     
     init() {
         // Complete navigation bar border removal for macOS
@@ -94,6 +99,45 @@ struct ContentView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .onAppear {
+            startRefreshTimer()
+        }
+        .onDisappear {
+            stopRefreshTimer()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            switch newPhase {
+            case .active:
+                // App came to foreground - refresh all device states
+                refreshAllDeviceStates()
+                startRefreshTimer()
+            case .inactive, .background:
+                // App went to background - stop timer to save resources
+                stopRefreshTimer()
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    private func startRefreshTimer() {
+        // Stop existing timer if any
+        stopRefreshTimer()
+        
+        // Start new timer that fires every 8 seconds
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { _ in
+            refreshAllDeviceStates()
+        }
+    }
+    
+    private func stopRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+    
+    private func refreshAllDeviceStates() {
+        // Trigger refresh for all visible device cards
+        NotificationCenter.default.post(name: .refreshDeviceStates, object: nil)
     }
 }
 
@@ -189,6 +233,9 @@ struct DeviceCard: View {
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         .onAppear(perform: getInitialState)
+        .onReceive(NotificationCenter.default.publisher(for: .refreshDeviceStates)) { _ in
+            refreshDeviceState()
+        }
         .contextMenu {
             Button(action: {
                 isEditingDevice = true
@@ -248,6 +295,28 @@ struct DeviceCard: View {
                 if !success {
                     // Revert the toggle state if the API call fails
                     isToggled.toggle()
+                } else {
+                    // After successful toggle, refresh the state to ensure accuracy
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        refreshDeviceState()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func refreshDeviceState() {
+        // Only refresh if we have loaded initial state (to avoid conflicts)
+        guard hasLoadedInitialState else { return }
+        
+        api.getPowerState(ipAddress: device.ipAddress) { state in
+            DispatchQueue.main.async {
+                if let state = state {
+                    let newToggleState = (state == "ON")
+                    if newToggleState != isToggled {
+                        print("🔄 State changed for \(device.name): \(isToggled) -> \(newToggleState)")
+                        isToggled = newToggleState
+                    }
                 }
             }
         }
