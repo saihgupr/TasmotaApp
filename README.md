@@ -1,6 +1,6 @@
 # TasmotaApp
 
-A native iOS app for controlling Tasmota-powered smart devices on your local network. Built with SwiftUI for a modern, responsive interface that adapts to different device orientations and screen sizes.
+A native iOS and macOS app for controlling Tasmota-powered smart devices on your local network. Built with SwiftUI for a modern, responsive interface that adapts to different device orientations and screen sizes across iPhone, iPad, and Mac.
 
 ## Features
 
@@ -10,7 +10,8 @@ A native iOS app for controlling Tasmota-powered smart devices on your local net
 - **Status Monitoring**: View current power state of all devices
 - **JSON Import/Export**: Bulk import device configurations from JSON files
 - **Responsive Design**: Adaptive layout that uses single column on iPhone portrait mode for better usability
-- **Native iOS Experience**: Built with SwiftUI for optimal performance and integration
+- **Cross-Platform**: Native iOS and macOS app with Mac Catalyst support
+- **Native Experience**: Built with SwiftUI for optimal performance and integration across all Apple platforms
 
 ## Screenshots
 
@@ -18,7 +19,7 @@ A native iOS app for controlling Tasmota-powered smart devices on your local net
 
 ## Requirements
 
-- iOS 15.0+
+- iOS 15.0+ / macOS 12.0+
 - Xcode 13.0+
 - Swift 5.5+
 - Devices running Tasmota firmware on your local network
@@ -35,7 +36,7 @@ A native iOS app for controlling Tasmota-powered smart devices on your local net
 
 2. Open `TasmotaApp.xcodeproj` in Xcode
 
-3. Select your target device or simulator
+3. Select your target device, simulator, or "My Mac (Mac Catalyst)" for macOS
 
 4. Build and run the project (⌘+R)
 
