@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 extension Notification.Name {
     static let refreshDeviceStates = Notification.Name("refreshDeviceStates")
 }
@@ -251,6 +255,13 @@ struct DeviceCard: View {
                 Image(systemName: "trash")
             }
             .foregroundColor(.red)
+            
+            Button(action: {
+                openDeviceWebUI()
+            }) {
+                Text("Web UI")
+                Image(systemName: "globe")
+            }
         }
         .sheet(isPresented: $isEditingDevice) {
             AddEditDeviceView(deviceManager: deviceManager, device: device, groupName: groupName)
@@ -320,6 +331,16 @@ struct DeviceCard: View {
                 }
             }
         }
+    }
+    
+    private func openDeviceWebUI() {
+        guard let url = URL(string: "http://\(device.ipAddress)") else {
+            print("❌ Invalid URL for device: \(device.ipAddress)")
+            return
+        }
+        
+        // UIApplication.shared.open works for both iOS and Mac Catalyst
+        UIApplication.shared.open(url)
     }
 }
 
