@@ -26,7 +26,7 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 
 ## Requirements
 
-- iOS 15.0+ / macOS 12.0+
+- iOS 14.6+ / macOS 12.0+
 - Xcode 13.0+
 - Swift 5.5+
 - Devices running Tasmota firmware on your local network
