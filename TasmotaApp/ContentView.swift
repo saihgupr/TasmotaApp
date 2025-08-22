@@ -46,7 +46,7 @@ struct ContentView: View {
                     ScrollView {
                         LazyVStack(spacing: 24) {
                             ForEach(deviceManager.deviceGroups) { group in
-                                DeviceGroupView(group: group, deviceManager: deviceManager)
+                                DeviceGroupView(groupName: group.name, deviceManager: deviceManager)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -98,13 +98,17 @@ struct ContentView: View {
 }
 
 struct DeviceGroupView: View {
-    let group: DeviceGroup
+    let groupName: String
     @ObservedObject var deviceManager: DeviceManager
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     
+    private var currentGroup: DeviceGroup? {
+        deviceManager.deviceGroups.first { $0.name == groupName }
+    }
+    
     private var formattedGroupName: String {
-        return group.name
+        return groupName
             .replacingOccurrences(of: "_", with: " ")
             .capitalized
     }
@@ -120,19 +124,21 @@ struct DeviceGroupView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(formattedGroupName)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
-                .padding(.horizontal, 20)
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount), spacing: 16) {
-                ForEach(group.devices) { device in
-                    DeviceCard(device: device, groupName: group.name, deviceManager: deviceManager)
+        if let group = currentGroup {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(formattedGroupName)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 20)
+                
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount), spacing: 16) {
+                    ForEach(group.devices) { device in
+                        DeviceCard(device: device, groupName: groupName, deviceManager: deviceManager)
+                    }
                 }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
         }
     }
 }
