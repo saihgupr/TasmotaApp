@@ -197,6 +197,7 @@ struct DeviceCard: View {
     @ObservedObject var deviceManager: DeviceManager
     let api = TasmotaAPI()
     @State private var isToggled = false
+    @State private var deviceState = false
     @State private var isLoading = false
     @State private var isEditingDevice = false
     @State private var hasLoadedInitialState = false
@@ -222,10 +223,15 @@ struct DeviceCard: View {
             
             Toggle("", isOn: $isToggled)
                 .onChange(of: isToggled) { value in
-                    print("🔍 onChange triggered for \(device.name): value=\(value), isSettingInitialState=\(isSettingInitialState), isUserToggling=\(isUserToggling)")
+                    print("🔍 onChange triggered for \(device.name): value=\(value), deviceState=\(deviceState), isSettingInitialState=\(isSettingInitialState), isUserToggling=\(isUserToggling)")
                     if hasLoadedInitialState && !isSettingInitialState && !isUserToggling {
-                        print("🚀 Calling toggleDevice for \(device.name)")
-                        toggleDevice()
+                        // Only toggle if the UI state differs from the actual device state
+                        if value != deviceState {
+                            print("🚀 Calling toggleDevice for \(device.name) - UI state (\(value)) differs from device state (\(deviceState))")
+                            toggleDevice()
+                        } else {
+                            print("⏸️ Skipping toggleDevice for \(device.name) - UI state matches device state")
+                        }
                     } else {
                         print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading or user toggling")
                     }
@@ -280,9 +286,11 @@ struct DeviceCard: View {
                 print("📡 Initial state for \(device.name): \(state ?? "nil")")
                 isLoading = false
                 if let state = state {
-                    // Set the toggle state to match the device's actual state
-                    isToggled = (state == "ON")
-                    print("✅ Set toggle to \(isToggled) for \(device.name)")
+                    // Set both the UI state and device state to match the device's actual state
+                    let newState = (state == "ON")
+                    isToggled = newState
+                    deviceState = newState
+                    print("✅ Set toggle to \(isToggled) and deviceState to \(deviceState) for \(device.name)")
                     hasLoadedInitialState = true // Only set this when we successfully get state
                     
                     // Use a small delay to ensure onChange doesn't trigger before we reset the flag
@@ -334,10 +342,12 @@ struct DeviceCard: View {
         api.getPowerState(ipAddress: device.ipAddress) { state in
             DispatchQueue.main.async {
                 if let state = state {
-                    let newToggleState = (state == "ON")
-                    if newToggleState != isToggled {
-                        print("🔄 State changed for \(device.name): \(isToggled) -> \(newToggleState)")
-                        isToggled = newToggleState
+                    let newDeviceState = (state == "ON")
+                    if newDeviceState != deviceState {
+                        print("🔄 Device state changed for \(device.name): \(deviceState) -> \(newDeviceState)")
+                        deviceState = newDeviceState
+                        // Update UI state to match device state
+                        isToggled = newDeviceState
                     }
                 }
             }
