@@ -224,7 +224,7 @@ struct DeviceCard: View {
             Toggle("", isOn: $isToggled)
                 .onChange(of: isToggled) { value in
                     print("🔍 onChange triggered for \(device.name): value=\(value), deviceState=\(deviceState), isSettingInitialState=\(isSettingInitialState), isUserToggling=\(isUserToggling)")
-                    if hasLoadedInitialState && !isSettingInitialState && !isUserToggling {
+                    if hasLoadedInitialState && !isSettingInitialState {
                         // Only toggle if the UI state differs from the actual device state
                         if value != deviceState {
                             print("🚀 Calling toggleDevice for \(device.name) - UI state (\(value)) differs from device state (\(deviceState))")
@@ -233,7 +233,7 @@ struct DeviceCard: View {
                             print("⏸️ Skipping toggleDevice for \(device.name) - UI state matches device state")
                         }
                     } else {
-                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading or user toggling")
+                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading")
                     }
                 }
                 .disabled(isLoading)
@@ -320,10 +320,10 @@ struct DeviceCard: View {
                     isUserToggling = false
                 } else {
                     // After successful toggle, refresh the state to ensure accuracy
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         refreshDeviceState()
-                        // Re-enable user toggling after a longer delay to prevent loops
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        // Re-enable polling after a short delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             isUserToggling = false
                         }
                     }
