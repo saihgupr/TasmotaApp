@@ -202,6 +202,7 @@ struct DeviceCard: View {
     @State private var isEditingDevice = false
     @State private var hasLoadedInitialState = false
     @State private var isSettingInitialState = false
+    @State private var isUpdatingFromPoll = false
     
     private var formattedDeviceName: String {
         return device.name
@@ -222,13 +223,13 @@ struct DeviceCard: View {
             
             Toggle("", isOn: $switchState)
                 .onChange(of: switchState) { value in
-                    print("🔍 User toggled \(device.name): switchState=\(value), pollState=\(pollState)")
-                    if hasLoadedInitialState && !isSettingInitialState {
-                        // User interaction - always call API
+                    print("🔍 onChange triggered for \(device.name): switchState=\(value), pollState=\(pollState), isUpdatingFromPoll=\(isUpdatingFromPoll)")
+                    if hasLoadedInitialState && !isSettingInitialState && !isUpdatingFromPoll {
+                        // Only call API if this is a user interaction, not a polling update
                         print("🚀 Calling toggleDevice for \(device.name) - user interaction")
                         toggleDevice()
                     } else {
-                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading")
+                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading or polling update")
                     }
                 }
                 .disabled(isLoading)
@@ -283,10 +284,16 @@ struct DeviceCard: View {
                 if let state = state {
                     // Set both states to match the device's actual state
                     let newState = (state == "ON")
+                    isUpdatingFromPoll = true
                     switchState = newState
                     pollState = newState
                     print("✅ Set switchState to \(switchState) and pollState to \(pollState) for \(device.name)")
                     hasLoadedInitialState = true // Only set this when we successfully get state
+                    
+                    // Reset the flag after a brief delay to ensure onChange doesn't trigger
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isUpdatingFromPoll = false
+                    }
                     
                     // Use a small delay to ensure onChange doesn't trigger before we reset the flag
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -335,8 +342,13 @@ struct DeviceCard: View {
                     if newPollState != pollState {
                         print("🔄 Poll state changed for \(device.name): \(pollState) -> \(newPollState)")
                         pollState = newPollState
-                        // Update switch state to match polled state
+                        // Update switch state to match polled state (without triggering onChange)
+                        isUpdatingFromPoll = true
                         switchState = newPollState
+                        // Reset the flag after a brief delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isUpdatingFromPoll = false
+                        }
                     }
                 }
             }
