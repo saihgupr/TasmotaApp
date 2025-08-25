@@ -25,12 +25,14 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 </div>
 
 <div align="center">
-
-### iPad & macOS
-</div>
-<div align="center">
-  <img src="https://i.imgur.com/nHEg8rk.png" width="45%" style="margin-right: 5px;" />
-  <img src="https://i.imgur.com/O2a2pNS.png" width="45%" style="margin-left: 5px;" />
+  <div style="display: inline-block; width: 45%; margin-right: 5px; text-align: center;">
+    <h3>iPad</h3>
+    <img src="https://i.imgur.com/nHEg8rk.png" width="100%" />
+  </div>
+  <div style="display: inline-block; width: 45%; margin-left: 5px; text-align: center;">
+    <h3>macOS</h3>
+    <img src="https://i.imgur.com/O2a2pNS.png" width="100%" />
+  </div>
 </div>
 
 ## Requirements
