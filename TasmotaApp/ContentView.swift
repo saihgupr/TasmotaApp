@@ -196,13 +196,12 @@ struct DeviceCard: View {
     let groupName: String
     @ObservedObject var deviceManager: DeviceManager
     let api = TasmotaAPI()
-    @State private var isToggled = false
-    @State private var deviceState = false
+    @State private var switchState = false
+    @State private var pollState = false
     @State private var isLoading = false
     @State private var isEditingDevice = false
     @State private var hasLoadedInitialState = false
     @State private var isSettingInitialState = false
-    @State private var isUserToggling = false
     
     private var formattedDeviceName: String {
         return device.name
@@ -221,17 +220,13 @@ struct DeviceCard: View {
             
             Spacer()
             
-            Toggle("", isOn: $isToggled)
-                .onChange(of: isToggled) { value in
-                    print("🔍 onChange triggered for \(device.name): value=\(value), deviceState=\(deviceState), isSettingInitialState=\(isSettingInitialState), isUserToggling=\(isUserToggling)")
+            Toggle("", isOn: $switchState)
+                .onChange(of: switchState) { value in
+                    print("🔍 User toggled \(device.name): switchState=\(value), pollState=\(pollState)")
                     if hasLoadedInitialState && !isSettingInitialState {
-                        // Only toggle if the UI state differs from the actual device state
-                        if value != deviceState {
-                            print("🚀 Calling toggleDevice for \(device.name) - UI state (\(value)) differs from device state (\(deviceState))")
-                            toggleDevice()
-                        } else {
-                            print("⏸️ Skipping toggleDevice for \(device.name) - UI state matches device state")
-                        }
+                        // User interaction - always call API
+                        print("🚀 Calling toggleDevice for \(device.name) - user interaction")
+                        toggleDevice()
                     } else {
                         print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading")
                     }
@@ -286,11 +281,11 @@ struct DeviceCard: View {
                 print("📡 Initial state for \(device.name): \(state ?? "nil")")
                 isLoading = false
                 if let state = state {
-                    // Set both the UI state and device state to match the device's actual state
+                    // Set both states to match the device's actual state
                     let newState = (state == "ON")
-                    isToggled = newState
-                    deviceState = newState
-                    print("✅ Set toggle to \(isToggled) and deviceState to \(deviceState) for \(device.name)")
+                    switchState = newState
+                    pollState = newState
+                    print("✅ Set switchState to \(switchState) and pollState to \(pollState) for \(device.name)")
                     hasLoadedInitialState = true // Only set this when we successfully get state
                     
                     // Use a small delay to ensure onChange doesn't trigger before we reset the flag
@@ -309,23 +304,17 @@ struct DeviceCard: View {
     
     private func toggleDevice() {
         isLoading = true
-        isUserToggling = true
         
         api.toggleDevice(ipAddress: device.ipAddress) { success in
             DispatchQueue.main.async {
                 isLoading = false
                 if !success {
-                    // Revert the toggle state if the API call fails
-                    isToggled.toggle()
-                    isUserToggling = false
+                    // Revert the switch state if the API call fails
+                    switchState.toggle()
                 } else {
                     // After successful toggle, refresh the state to ensure accuracy
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         refreshDeviceState()
-                        // Re-enable polling after a short delay
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            isUserToggling = false
-                        }
                     }
                 }
             }
@@ -333,21 +322,21 @@ struct DeviceCard: View {
     }
     
     private func refreshDeviceState() {
-        // Only refresh if we have loaded initial state and user is not toggling (to avoid conflicts)
-        guard hasLoadedInitialState && !isUserToggling else { 
-            print("⏸️ Skipping refresh for \(device.name) - user toggling or initial state not loaded")
+        // Only refresh if we have loaded initial state
+        guard hasLoadedInitialState else { 
+            print("⏸️ Skipping refresh for \(device.name) - initial state not loaded")
             return 
         }
         
         api.getPowerState(ipAddress: device.ipAddress) { state in
             DispatchQueue.main.async {
                 if let state = state {
-                    let newDeviceState = (state == "ON")
-                    if newDeviceState != deviceState {
-                        print("🔄 Device state changed for \(device.name): \(deviceState) -> \(newDeviceState)")
-                        deviceState = newDeviceState
-                        // Update UI state to match device state
-                        isToggled = newDeviceState
+                    let newPollState = (state == "ON")
+                    if newPollState != pollState {
+                        print("🔄 Poll state changed for \(device.name): \(pollState) -> \(newPollState)")
+                        pollState = newPollState
+                        // Update switch state to match polled state
+                        switchState = newPollState
                     }
                 }
             }
