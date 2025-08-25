@@ -201,6 +201,7 @@ struct DeviceCard: View {
     @State private var isEditingDevice = false
     @State private var hasLoadedInitialState = false
     @State private var isSettingInitialState = false
+    @State private var isUserToggling = false
     
     private var formattedDeviceName: String {
         return device.name
@@ -221,12 +222,12 @@ struct DeviceCard: View {
             
             Toggle("", isOn: $isToggled)
                 .onChange(of: isToggled) { value in
-                    print("🔍 onChange triggered for \(device.name): value=\(value), isSettingInitialState=\(isSettingInitialState)")
-                    if hasLoadedInitialState && !isSettingInitialState {
+                    print("🔍 onChange triggered for \(device.name): value=\(value), isSettingInitialState=\(isSettingInitialState), isUserToggling=\(isUserToggling)")
+                    if hasLoadedInitialState && !isSettingInitialState && !isUserToggling {
                         print("🚀 Calling toggleDevice for \(device.name)")
                         toggleDevice()
                     } else {
-                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading")
+                        print("⏸️ Skipping toggleDevice for \(device.name) - initial state loading or user toggling")
                     }
                 }
                 .disabled(isLoading)
@@ -300,16 +301,23 @@ struct DeviceCard: View {
     
     private func toggleDevice() {
         isLoading = true
+        isUserToggling = true
+        
         api.toggleDevice(ipAddress: device.ipAddress) { success in
             DispatchQueue.main.async {
                 isLoading = false
                 if !success {
                     // Revert the toggle state if the API call fails
                     isToggled.toggle()
+                    isUserToggling = false
                 } else {
                     // After successful toggle, refresh the state to ensure accuracy
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         refreshDeviceState()
+                        // Re-enable user toggling after a longer delay to prevent loops
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            isUserToggling = false
+                        }
                     }
                 }
             }
@@ -317,8 +325,11 @@ struct DeviceCard: View {
     }
     
     private func refreshDeviceState() {
-        // Only refresh if we have loaded initial state (to avoid conflicts)
-        guard hasLoadedInitialState else { return }
+        // Only refresh if we have loaded initial state and user is not toggling (to avoid conflicts)
+        guard hasLoadedInitialState && !isUserToggling else { 
+            print("⏸️ Skipping refresh for \(device.name) - user toggling or initial state not loaded")
+            return 
+        }
         
         api.getPowerState(ipAddress: device.ipAddress) { state in
             DispatchQueue.main.async {
