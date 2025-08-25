@@ -15,9 +15,9 @@ A native iOS and macOS app for controlling Tasmota-powered smart devices on your
 
 <div align="center">
   <img src="https://i.imgur.com/IFTyEms.png" width="22%" />
+  <img src="https://i.imgur.com/J0f1NAW.png" width="22%" />
   <img src="https://i.imgur.com/99CrRth.png" width="22%" />
   <img src="https://i.imgur.com/wupTeOF.png" width="22%" />
-  <img src="https://i.imgur.com/J0f1NAW.png" width="22%" />
 </div>
 
 <div align="center">
