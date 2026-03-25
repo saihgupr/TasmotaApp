@@ -1,0 +1,6 @@
+# [TasmotaApp] - GitIgnore
+.DS_Store
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/
